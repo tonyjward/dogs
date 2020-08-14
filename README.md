@@ -7,15 +7,15 @@ Capstone project for the Udacity Machine Learning Engineer Nano Degree
 
 `cd repos`
 
-`git clone https://github.com/tonyjward/the-dogs.git`
+`git clone https://github.com/tonyjward/dogs.git`
 
-`cd the-dogs`
+`cd dogs`
 
 `mkdir data`
 
 `mkdir logs`
 
-`mkdir the-dogs/tests`
+`mkdir dogs/tests`
 
 
 # Create a virtual environment 
@@ -24,21 +24,21 @@ Capstone project for the Udacity Machine Learning Engineer Nano Degree
 
 `mkdir .venv`
 
-`python3.6 -m venv .venvs/the-dogs`
+`python3.6 -m venv .venvs/dogs`
 
 Activate the virtual environment
 
-`source .venv/the-dogs/bin/activate`
+`source .venv/dogs/bin/activate`
 
 Install dependencies 
 
-`cd repos/the-dogs/`
+`cd repos/dogs/`
 
 `pip3 install -r requirements.txt`
 
-Install `the-dogs` package built using this project in devlop model
+Install `dogs` package built using this project in develop model
 
 `pip3 install -e ./`
 
 # Create Jupyter Kernel 
-`ipython kernel install --user --name=the-dogs`
+`ipython kernel install --user --name=dogs`
