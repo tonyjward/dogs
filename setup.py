@@ -2,10 +2,10 @@
 
 from setuptools import setup
 
-setup(name='greyhound',
+setup(name='the-dogs',
       version='0.1',
       # list folders, not files
-      packages=['greyhound',
-                'greyhound.tests'],
-      scripts=['greyhound/bin/basic_script.py'],
+      packages=['the-dogs',
+                'the-dogs.tests'],
+      scripts=['the-dogs/bin/basic_script.py'],
       )
