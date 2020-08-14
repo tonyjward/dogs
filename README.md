@@ -1,2 +1,2 @@
 # greyhounds
-Captstone project for the Udacity Machine Learning Engineer Nano Degree
+Capstone project for the Udacity Machine Learning Engineer Nano Degree
