@@ -21,7 +21,9 @@ Capstone project for the Udacity Machine Learning Engineer Nano Degree
 # Create a virtual environment 
 
 `cd`
+
 `mkdir .venv`
+
 `python3.6 -m venv .venvs/the-dogs`
 
 Activate the virtual environment
@@ -31,8 +33,9 @@ Activate the virtual environment
 Install dependencies 
 
 `cd repos/the-dogs/`
+
 `pip3 install -r requirements.txt`
 
 Install `the-dogs` package built using this project in devlop model
 
-`pip
+`pip3 install -e ./`
