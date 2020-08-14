@@ -39,3 +39,6 @@ Install dependencies
 Install `the-dogs` package built using this project in devlop model
 
 `pip3 install -e ./`
+
+# Create Jupyter Kernel 
+`ipython kernel install --user --name=the-dogs`
