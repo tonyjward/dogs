@@ -15,6 +15,7 @@ idna==2.10
 lightgbm==2.3.1
 isodate==0.6.0
 jupyter==1.0.0
+matplotlib==3.3.1
 msrest==0.6.17
 msrestazure==0.6.4
 numpy==1.19.0
