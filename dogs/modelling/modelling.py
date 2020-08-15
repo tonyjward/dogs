@@ -9,31 +9,91 @@ from dateutil.relativedelta import relativedelta
 from dateutil import parser
 import traceback
 
-from greyhound.modelling.utils import create_features, features_used
+from dogs.modelling.utils import create_features, features_used, accuracy_error
+from dogs.modelling.tuning import train_tune
 
-def modelling(data_path = '/home/d14xj1/repos/greyhound/modelling_data',
-              file_name = 'modelling_data',
+
+def train_default(X_train, Y_train):
+    """ Train a lightgbm model using the default settings
+
+     Arguments:
+        X_train - pandas dataframe with training features
+        Y_train - pandas dataframe with training labels
+
+    Returns:
+        a trained lightgbm model
+    """
+    model = lgb.LGBMClassifier(objective = 'multiclass', num_class = "6", random_state = 42)
+    model.fit(X_train, Y_train)
+    return model
+
+
+def train_cv(X_train, Y_train, nfold = 5, early_stopping_rounds = 20):
+    """ 
+    First trains a model using cross validation and early stopping to identify
+    the optimal number of boosting iterations. Then trains a model using
+    all of the data with the optimal number of boosting iterations
+
+    Arguments:
+        X_train - pandas dataframe with training features
+        Y_train - pandas dataframe with training labels
+
+    Returns:
+        a trained lightgbm model
+    """
+    # model params
+    params = {  "objective" : "multiclass",
+            "num_class" : 6,
+            "verbosity" : -1 }
+
+    # create dataset for lightgbm
+    lgb_train = lgb.Dataset(X_train, Y_train)
+    
+    # cross validate to find optimal no of iterations
+    r = lgb.cv(params, 
+           lgb_train, 
+           10000,
+           early_stopping_rounds = early_stopping_rounds,
+           nfold = nfold,
+           feval = accuracy_error,
+           metrics = 'None',
+           verbose_eval = True,
+           seed = 42)
+
+    # Highest score
+    r_best = np.max(r['accuracy-mean'])
+
+    # best number of estimators
+    best_estimators = np.argmax(r['accuracy-mean']) + 1
+    print(best_estimators)
+
+    print(f'The maxium accuracy on the validation set was {r_best:.5f}')
+    print(f'The ideal number of iterations was {best_estimators}.')
+
+    # Fit on all of the training data using the ideal number of iterations
+    model = lgb.LGBMClassifier(n_estimators=best_estimators, n_jobs = -1,
+                                       **params, random_state = 42)    
+    model.fit(X_train, Y_train)
+
+    return model
+
+
+def modelling(df,
               training_months = 120,
-              test_start = 2017,
+              test_start = 2018,
               test_end = 2019,
-              method = 'default'):
+              method = 'default',
+              nfold = 5,
+              max_evals = 200):
 
     start = timer()
 
+    # define hold out periods
     years = list(range(test_start, test_end))
     months = list(range(1, 13))
-
-    # read data
-    df = pd.read_csv(os.path.join(data_path, file_name + '.csv'))
-
-    # target must start from 0
-    df['winning_box'] = df['winning_box'] - 1
-    df['favourite'] = df['favourite'] - 1
-    
     data_starts_at = df['date_time'].min()
     data_starts_at = parser.parse(data_starts_at)
     print(f'data starts at {data_starts_at}')
-    
     
     # arrays to store accuracy indicator for all races across all time periods
     model_correct_all = np.array([])
@@ -44,8 +104,6 @@ def modelling(data_path = '/home/d14xj1/repos/greyhound/modelling_data',
     model_accuracy = []
     benchmark_accuracy = []
     
-    
-        
     for year in years:
         for month in months:
 
@@ -72,49 +130,24 @@ def modelling(data_path = '/home/d14xj1/repos/greyhound/modelling_data',
 
                 # train model
                 if method == 'default':
-                    model = lgb.LGBMClassifier(objective = 'multiclass', num_class = "6", random_state = 42)
-                    model.fit(X_train, Y_train)
+                    model = train_default(X_train, Y_train)
+                    
                 elif method == 'cv':
-                    params = {  "objective" : "multiclass",
-                                "num_class" : 6,
-                                "verbosity" : -1 }
+                    model = train_cv(X_train, Y_train, nfold = nfold)
+                
+                elif method == 'tune':
+                    model = train_tune(X_train, Y_train, nfold = nfold, max_evals = max_evals)
                     
-                    # cross validate to find optimal no of iterations
-                    r = lgb.cv(params, 
-                            lgb_train, 
-                            10000,
-                            early_stopping_rounds = 100,
-                            nfold = 5,
-                            metrics = 'multi_logloss',
-                            verbose_eval = True,
-                            seed = 42)
-                    
-                    # Highest score
-                    r_best = np.min(r['multi_logloss-mean'])
-
-                    # Standard deviation of best score
-                    r_best_std = r['multi_logloss-stdv'][np.argmin(r['multi_logloss-mean'])]
-
-                    # best number of estimators
-                    best_estimators = np.argmin(r['multi_logloss-mean']) + 1
-
-                    print('The minimum multi-log_loss on the validation set was {:.5f} with std of {:.5f}.'.format(r_best, r_best_std))
-                    print(f'The ideal number of iterations was {best_estimators}.')
-
-                    model = lgb.LGBMClassifier(n_estimators=best_estimators, n_jobs = -1, **params, random_state = 42)
-                    # Fit on the training data
-                    model.fit(X_train, Y_train)
-
                 # obtain predictions
                 predictions = model.predict_proba(X_test)
                 prediction_class = np.array([np.argmax(line) for line in predictions])
 
                 # obtain benchmark
-                favourite = df.loc[test_idx, 'favourite'].values
+                benchmark = df.loc[test_idx, 'benchmark'].values
 
                 # calculate monthly accuracy
                 model_correct = (prediction_class == Y_test)
-                benchmark_correct = (favourite == Y_test)
+                benchmark_correct = (benchmark == Y_test)
                 accuracy_model = model_correct.mean()
                 accuracy_benchmark =  benchmark_correct.mean()
 
@@ -147,12 +180,11 @@ def modelling(data_path = '/home/d14xj1/repos/greyhound/modelling_data',
     print(results)
     print(f"We used the following features {features_used(df.columns)}")
     print(f"Overall Model Accuracy: {model_accuracy_overall:.3f} Overall Benchmark Accuracy: {benchmark_accuracy_overall:.3f}")
-    # results.to_csv(os.path.join(data_path, 'runs.csv'), mode = 'a', index = False)
 
     total_time = timer() - start
     print(f'It took {total_time}')
 
-    return model_accuracy_overall, benchmark_accuracy_overall, no_eligible_races, features_used(df.columns)
+    return model_accuracy_overall, benchmark_accuracy_overall, no_eligible_races, features_used(df.columns), total_time
 
 if __name__ == '__main__':
     modelling()
