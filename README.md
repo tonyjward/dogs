@@ -36,7 +36,7 @@ Install dependencies
 
 `pip3 install -r requirements.txt`
 
-Install `dogs` package built using this project in develop model
+Install the `dogs` package built using this project in develop model
 
 `pip3 install -e ./`
 
