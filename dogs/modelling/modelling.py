@@ -84,7 +84,8 @@ def modelling(df,
               test_end = 2019,
               method = 'default',
               nfold = 5,
-              max_evals = 200):
+              max_evals = 200,
+              feature_importance = False):
 
     start = timer()
 
@@ -137,6 +138,9 @@ def modelling(df,
                 
                 elif method == 'tune':
                     model = train_tune(X_train, Y_train, nfold = nfold, max_evals = max_evals)
+
+                if feature_importance:
+                    print(lgb.plot_importance(model))
                     
                 # obtain predictions
                 predictions = model.predict_proba(X_test)
